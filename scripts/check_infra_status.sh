@@ -1,4 +1,17 @@
 #!/bin/bash
+set -euo pipefail
+
+# Validate gcloud is installed
+if ! command -v gcloud &> /dev/null; then
+  echo "Error: gcloud CLI is not installed or not in PATH"
+  exit 1
+fi
+
+# Check if user is authenticated
+if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+  echo "Error: No active gcloud authentication found. Run 'gcloud auth login'"
+  exit 1
+fi
 
 PROJECT_ID="react-app-492207"
 REGION="us-central1"
