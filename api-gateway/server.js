@@ -41,6 +41,10 @@ const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Enable 'trust proxy' as the app is running behind a Cloud Run load balancer 
+// This ensures that the Rate Limiter picks up the correct client IP from X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ==========================================
 // SECURITY MIDDLEWARE (Addressing CodeRabbit Findings)
 // ==========================================

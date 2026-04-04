@@ -8,7 +8,7 @@ if ! command -v gcloud &> /dev/null; then
 fi
 
 # Check if user is authenticated
-if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/null; then
+if [[ -z "$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null)" ]]; then
   echo "Error: No active gcloud authentication found. Run 'gcloud auth login'"
   exit 1
 fi
