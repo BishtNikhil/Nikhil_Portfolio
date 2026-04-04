@@ -1,17 +1,15 @@
 import { initializeApp } from "firebase/app";
-
 import { getFirestore } from "firebase/firestore";
 
 // Your Firebase configuration
-// IMPORTANT: You need to replace this with your actual Firebase Project config.
-// Go to Firebase Console -> Project Settings -> General -> Web Apps
+// IMPORTANT: Replace these with your actual Firebase Project config from the Firebase Console.
 const firebaseConfig = {
   apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "react-app-492207.firebaseapp.com",
-  projectId: "react-app-492207",
-  storageBucket: "react-app-492207.firebasestorage.app",
-  messagingSenderId: "502261012207",
-  appId: "1:502261012207:web:11871658104141247361"
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase App
@@ -19,4 +17,3 @@ export const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore for real-time visitor database listening
 export const db = getFirestore(app);
-

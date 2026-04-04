@@ -1,0 +1,15 @@
+{
+  "contentsDeltaUri": "gs://react-app-492207-vector-search/ingest/",
+  "config": {
+    "dimensions": 768,
+    "approximateNeighborsCount": 150,
+    "distanceMeasureType": "COSINE_DISTANCE",
+    "algorithmConfig": {
+      "treeAhConfig": {
+        "leafNodeEmbeddingCount": "1000",
+        "leafNodesToSearchPercent": "10"
+      }
+    },
+    "shardSize": "SHARD_SIZE_SMALL"
+  }
+}

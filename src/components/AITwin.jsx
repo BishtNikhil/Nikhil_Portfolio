@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config';
 
 const AITwin = () => {
   const [messages, setMessages] = useState([
-    { text: "Hi! I'm Nikhil's AI Twin. Feel free to ask me anything about his experience, skills, or projects! Note: you need to add your Firebase config before I can truly 'think'.", sender: 'bot' }
+    { text: "Hi! I'm Nikhil's AI Twin. I'm now powered by Vertex AI Vector Search and Gemini to share my experience with you! Feel free to ask me anything about my skills, projects, or cloud journey.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
