@@ -15,8 +15,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const PROJECT_ID = 'YOUR_PROJECT_ID';
-const LOCATION = 'YOUR_LOCATION';
+// ==========================================
+// ENVIRONMENT-BASED CONFIGURATION (CodeRabbit Fix)
+// ==========================================
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'react-app-492207';
+const LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
 const firestore = new Firestore({ projectId: PROJECT_ID });
 const bigquery = new BigQuery({ projectId: PROJECT_ID });
@@ -24,17 +27,17 @@ const storage = new Storage({ projectId: PROJECT_ID });
 // Vertex AI client — used for embeddings (text-embedding-004)
 const ai = new GoogleGenAI({ project: PROJECT_ID, location: LOCATION, vertexai: true });
 // Vertex AI Vector Search client
-const VERTEX_ENDPOINT_DOMAIN = process.env.VERTEX_ENDPOINT_DOMAIN || 'YOUR_ENDPOINT_DOMAIN'; 
-const matchClient = new MatchServiceClient({ apiEndpoint: VERTEX_ENDPOINT_DOMAIN });
+const VERTEX_ENDPOINT_DOMAIN = process.env.VERTEX_ENDPOINT_DOMAIN; 
+const matchClient = new MatchServiceClient({ apiEndpoint: VERTEX_ENDPOINT_DOMAIN || 'us-central1-aiplatform.googleapis.com' });
 
-const BUCKET_NAME = `${PROJECT_ID}-vector-search`;
-const INDEX_ENDPOINT_ID = process.env.VERTEX_INDEX_ENDPOINT_ID || 'YOUR_INDEX_ENDPOINT_ID';
-const DEPLOYED_INDEX_ID = process.env.VERTEX_DEPLOYED_INDEX_ID || 'YOUR_DEPLOYED_INDEX_ID';
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME || `${PROJECT_ID}-vector-search`;
+const INDEX_ENDPOINT_ID = process.env.VERTEX_INDEX_ENDPOINT_ID;
+const DEPLOYED_INDEX_ID = process.env.VERTEX_DEPLOYED_INDEX_ID;
 
 // Google AI (Gemini API) client — used for generative model calls
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
-    console.error("CRITICAL: GEMINI_API_KEY is not set. Chat will fail.");
+    console.error("CRITICAL ERROR: GEMINI_API_KEY is not set. All generative chat features will fail.");
 }
 const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
 
@@ -48,13 +51,13 @@ app.set('trust proxy', 1);
 // ==========================================
 // SECURITY MIDDLEWARE (Addressing CodeRabbit Findings)
 // ==========================================
-app.use(helmet()); // Sets various HTTP headers for security
+app.use(helmet()); 
 
 // Restricted CORS: only allow your portfolio domains
 const allowedOrigins = [
   'https://react-app-492207.web.app', 
   'https://react-app-492207.firebaseapp.com',
-  'http://localhost:5173' // Keep for local development
+  'http://localhost:5173'
 ];
 app.use(cors({
   origin: (origin, callback) => {
@@ -66,18 +69,22 @@ app.use(cors({
   }
 }));
 
-app.use(express.json({ limit: '10kb' })); // Body limit to prevent DDoS
+app.use(express.json({ limit: '10kb' })); 
 
 // Rate Limiting: 100 requests every 15 minutes
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  keyGenerator: (req) => {
+      // Robust IP Retrieval for Cloud Run proxies (CodeRabbit Fix)
+      return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.socket.remoteAddress;
+  },
   message: { error: 'Too many requests, please try again later.' }
 });
 
 // 1. Health Check Endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Portfolio API Gateway is running securely.' });
+    res.json({ status: 'ok', message: 'Portfolio API Gateway is running securely (v1.2.3).' });
 });
 
 // 2. Dynamic GitHub Stats Endpoint
@@ -85,7 +92,7 @@ app.get('/api/stats/github/:username', apiLimiter, async (req, res) => {
     try {
         const { username } = req.params;
         // Basic Input Validation
-        if (!username || !/^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username)) {
+        if (!username || !/^[a-z\d](?:[a-z\d]|-(?=\w)){0,38}$/i.test(username)) {
             return res.status(400).json({ success: false, error: "Invalid GitHub username format." });
         }
 
@@ -108,8 +115,8 @@ app.get('/api/stats/github/:username', apiLimiter, async (req, res) => {
 // 3. Analytics Visitor Tracking Logging Endpoint
 app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
     try {
-        const userAgent = req.headers['user-agent'] || 'unknown';
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 255);
+        const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
         const timestamp = new Date();
         
         const metricsRef = firestore.collection('portfolio_stats').doc('visits');
@@ -120,7 +127,7 @@ app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
 
         const row = {
             timestamp: bigquery.timestamp(timestamp),
-            userAgent: userAgent.substring(0, 255),
+            userAgent: userAgent,
             ipPrefix: (ip.toString().split('.')[0] || '0') + '.*.*.*'
         };
         
@@ -159,6 +166,11 @@ ${contextString}
             }
         });
 
+        // Defensive Null Check on generative response (CodeRabbit Fix)
+        if (!response || !response.text) {
+             return res.status(500).json({ success: false, error: "AI is currently reflective. Try again shortly." });
+        }
+
         res.json({ success: true, text: response.text });
     } catch (error) {
         console.error("Chat API Error:", error.message);
@@ -174,8 +186,13 @@ async function getRetrievedContext(message) {
             contents: message
         });
 
+        // Defensive Null Check on embedding response (CodeRabbit Fix)
+        if (!embedRes.embeddings || !embedRes.embeddings[0] || !embedRes.embeddings[0].values) {
+            throw new Error("Empty embedding returned from Vertex AI.");
+        }
+
         let context = [];
-        if (VERTEX_ENDPOINT_DOMAIN && INDEX_ENDPOINT_ID && INDEX_ENDPOINT_ID !== 'YOUR_INDEX_ENDPOINT_ID') {
+        if (VERTEX_ENDPOINT_DOMAIN && INDEX_ENDPOINT_ID) {
             try {
                 const [vertexResponse] = await matchClient.findNeighbors({
                     indexEndpoint: `projects/${PROJECT_ID}/locations/${LOCATION}/indexEndpoints/${INDEX_ENDPOINT_ID}`,
@@ -186,13 +203,16 @@ async function getRetrievedContext(message) {
                     }]
                 });
 
-                const neighborIds = vertexResponse.nearestNeighbors[0].neighbors.map(n => n.datapoint.datapointId);
-                if (neighborIds.length > 0) {
-                    const docs = await Promise.all(neighborIds.map(id => firestore.collection('twin_brain').doc(id).get()));
-                    docs.forEach(doc => { if (doc.exists) context.push(doc.data().text); });
+                // Defensive Null Check on Vertex response (CodeRabbit Fix)
+                if (vertexResponse && vertexResponse.nearestNeighbors?.[0]?.neighbors) {
+                    const neighborIds = vertexResponse.nearestNeighbors[0].neighbors.map(n => n.datapoint.datapointId);
+                    if (neighborIds.length > 0) {
+                        const docs = await Promise.all(neighborIds.map(id => firestore.collection('twin_brain').doc(id).get()));
+                        docs.forEach(doc => { if (doc.exists) context.push(doc.data().text); });
+                    }
                 }
             } catch (vertexError) {
-                console.warn("Retaining fallback due to Vertex latency...");
+                console.warn("Retaining fallback due to Vertex latency or configuration...");
             }
         }
 
