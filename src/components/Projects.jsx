@@ -53,6 +53,11 @@ const Projects = () => {
 
   const displayProjects = githubProjects.length > 0 ? githubProjects : resumeProjects;
 
+  const handleProjectClick = (projectName) => {
+    // Send a fire-and-forget ping to the analytics backend
+    fetch(`${API_BASE_URL}/api/metrics/visit?project=${encodeURIComponent(projectName)}`, { method: 'POST' }).catch(() => {});
+  };
+
   return (
     <section id="projects" className="section">
       <div className="container">
@@ -60,7 +65,7 @@ const Projects = () => {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           {displayProjects.map((project, i) => (
-            <a href={project.link} target="_blank" rel="noreferrer" key={i} className="glass-card animate-fade-in delay-1" style={{ display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none', color: 'inherit' }}>
+            <a href={project.url || project.link} onClick={() => handleProjectClick(project.name)} target="_blank" rel="noreferrer" key={i} className="glass-card animate-fade-in delay-1" style={{ display: 'flex', flexDirection: 'column', height: '100%', textDecoration: 'none', color: 'inherit' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <FolderGit2 size={32} color="var(--primary-color)" />
                 <div style={{ display: 'flex', gap: '0.8rem', color: 'var(--text-main)' }}>

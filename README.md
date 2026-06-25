@@ -6,8 +6,16 @@ This is a modern, full-stack portfolio application designed to showcase Cloud En
 
 - **AI Digital Twin (RAG)**: A serverless chatbot built with Gemini 1.5 Pro and Vertex AI Vector Search. It retrieves relevant sections of my career history to provide accurate, non-hallucinated answers.
 - **Serverless API Gateway**: A decoupled backend running on **Google Cloud Run**, handling AI processing, visitor tracking, and project metadata.
-- **Real-time Visitor Analytics**: Integrated with **Firestore** and **BigQuery** to track unique visits and session metrics in real-time.
-- **Modern UI**: Built with **React + Vite**, featuring glassmorphism design, responsive layouts, and dynamic project fetching from the GitHub API.
+- **Security & Privacy First**: Implements **Cloud DLP** for active PII redaction during chats, backed by **VPC Service Controls**, strict Helmet policies, Input Validation, and Rate Limiting.
+- **Real-time Observability**: Integrated with **Firestore** and **BigQuery** to track unique visits and session metrics. Includes a private Admin dashboard utilizing **Looker Studio** for data visualization.
+- **Modern UI**: Built with **React + Vite**, featuring glassmorphism design, CI/CD pipeline transparency badges, responsive layouts, and dynamic project fetching from the GitHub API.
+
+## 🛡️ Security Audit (v2.1.0)
+This application passed a strict security audit during the Climax Release. 
+- **CORS Restriction**: API Gateway exclusively allows requests from internal domains and localhost.
+- **Rate Limiting**: IP-based rate limiting (100 req / 15 min) configured accurately behind Cloud Run load balancers using `trust proxy`.
+- **DDoS Protection**: JSON payload limits (10kb) and HTTP header hardening via `helmet`.
+- **Secret Management**: Absolute zero-trust policy for version control. All `.env` variations are locked out via `.gitignore`.
 
 ## 🛠️ Tech Stack
 

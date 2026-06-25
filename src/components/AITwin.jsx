@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, ShieldCheck } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const AITwin = () => {
@@ -98,6 +98,12 @@ const AITwin = () => {
         <button onClick={handleSend} disabled={isLoading} style={{ opacity: isLoading ? 0.5 : 1 }}>
           <Send size={18} />
         </button>
+      </div>
+
+      {/* PII Protection Indicator */}
+      <div className="pii-protection-badge" style={{ display: 'block', textAlign: 'center', lineHeight: '1.4', padding: '0.8rem 1rem' }}>
+        <ShieldCheck size={13} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.4rem', filter: 'drop-shadow(0 0 5px rgba(102, 252, 241, 0.8))', color: 'var(--primary-color)', flexShrink: 0 }} />
+        <span style={{ verticalAlign: 'middle' }}>Chat inputs are actively screened by Google Cloud DLP API to prevent PII leaks</span>
       </div>
       
       <style>{`

@@ -11,6 +11,7 @@ import { Storage } from '@google-cloud/storage';
 import { GoogleAuth } from 'google-auth-library';
 import { v1 } from '@google-cloud/aiplatform';
 const { MatchServiceClient } = v1;
+import DLP from '@google-cloud/dlp';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -40,6 +41,14 @@ if (!GEMINI_API_KEY) {
     console.error("CRITICAL ERROR: GEMINI_API_KEY is not set. All generative chat features will fail.");
 }
 const gemini = new GoogleGenAI({ apiKey: GEMINI_API_KEY || '' });
+
+// Cloud DLP Client — for PII redaction in chat messages
+let dlpClient;
+try {
+    dlpClient = new DLP.DlpServiceClient({ projectId: PROJECT_ID });
+} catch (dlpErr) {
+    console.warn('DLP Client initialization failed (DLP features will be disabled):', dlpErr.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -84,7 +93,7 @@ const apiLimiter = rateLimit({
 
 // 1. Health Check Endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Portfolio API Gateway is running securely (v1.2.3).' });
+    res.json({ status: 'ok', message: 'Portfolio API Gateway is running securely (v2.1.0).' });
 });
 
 // 2. Dynamic GitHub Stats Endpoint
@@ -109,6 +118,132 @@ app.get('/api/stats/github/:username', apiLimiter, async (req, res) => {
     } catch (error) {
         console.error("GitHub API Request Failed:", error.message);
         res.status(500).json({ success: false, error: "Failed to fetch GitHub stats." });
+    }
+});
+
+// 2b. GitHub Activity / Commit Heatmap Endpoint
+app.get('/api/stats/github/:username/activity', apiLimiter, async (req, res) => {
+    try {
+        const { username } = req.params;
+        if (!username || !/^[a-z\d](?:[a-z\d]|-(?=\w)){0,38}$/i.test(username)) {
+            return res.status(400).json({ success: false, error: 'Invalid GitHub username.' });
+        }
+
+        const headers = { 'Accept': 'application/vnd.github+json', 'User-Agent': 'PortfolioApp' };
+        if (process.env.GITHUB_TOKEN) {
+            headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+        }
+
+        const response = await axios.get(
+            `https://api.github.com/users/${username}/events?per_page=100`,
+            { headers }
+        );
+
+        const now = new Date();
+        const days28Ago = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+        const commitMap = {};
+
+        // Initialize all 28 days
+        for (let i = 0; i < 28; i++) {
+            const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+            commitMap[d.toISOString().split('T')[0]] = 0;
+        }
+
+        // Count commits from PushEvents
+        response.data
+            .filter(e => e.type === 'PushEvent' && new Date(e.created_at) >= days28Ago)
+            .forEach(e => {
+                const date = new Date(e.created_at).toISOString().split('T')[0];
+                if (commitMap[date] !== undefined) {
+                    commitMap[date] += (e.payload.commits?.length || 0);
+                }
+            });
+
+        const totalCommits = Object.values(commitMap).reduce((a, b) => a + b, 0);
+        const activeDays = Object.values(commitMap).filter(v => v > 0).length;
+
+        // Calculate current streak
+        let streak = 0;
+        const sortedDays = Object.entries(commitMap).sort((a, b) => b[0].localeCompare(a[0]));
+        for (const [, count] of sortedDays) {
+            if (count > 0) streak++;
+            else break;
+        }
+
+        res.json({ success: true, data: { commitMap, totalCommits, activeDays, currentStreak: streak } });
+    } catch (error) {
+        console.error('GitHub Activity Error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch GitHub activity.' });
+    }
+});
+
+// 2c. WakaTime Language Usage Proxy Endpoint
+app.get('/api/stats/wakatime', apiLimiter, async (req, res) => {
+    try {
+        const WAKATIME_KEY = process.env.WAKATIME_API_KEY;
+        if (!WAKATIME_KEY) {
+            return res.status(503).json({ success: false, error: 'WakaTime not configured.' });
+        }
+
+        const encoded = Buffer.from(WAKATIME_KEY).toString('base64');
+        const response = await axios.get(
+            'https://wakatime.com/api/v1/users/current/stats/last_7_days',
+            { headers: { 'Authorization': `Basic ${encoded}` } }
+        );
+
+        const languages = (response.data.data?.languages || []).map(lang => ({
+            name: lang.name,
+            totalSeconds: lang.total_seconds || 0,
+            percent: lang.percent || 0,
+            hours: Math.floor((lang.total_seconds || 0) / 3600),
+            minutes: Math.floor(((lang.total_seconds || 0) % 3600) / 60),
+            color: lang.color || null
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                languages: languages.slice(0, 8),
+                totalSeconds: response.data.data?.total_seconds || 0,
+                dailyAverage: response.data.data?.daily_average || 0
+            }
+        });
+    } catch (error) {
+        console.error('WakaTime Error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch WakaTime stats.' });
+    }
+});
+
+// 2d. Credly Badges Proxy Endpoint (bypasses CORS)
+app.get('/api/stats/credly/:userId/badges', apiLimiter, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId || userId.length > 100) {
+            return res.status(400).json({ success: false, error: 'Invalid Credly user ID.' });
+        }
+
+        const response = await axios.get(
+            `https://www.credly.com/users/${encodeURIComponent(userId)}/badges.json`,
+            { headers: { 'Accept': 'application/json', 'User-Agent': 'PortfolioApp/1.0' } }
+        );
+
+        const rawBadges = response.data?.data || response.data || [];
+        const badges = (Array.isArray(rawBadges) ? rawBadges : []).map(badge => ({
+            id: badge.id,
+            title: badge.badge_template?.name || badge.name || 'Untitled Badge',
+            description: badge.badge_template?.description || badge.description || '',
+            imageUrl: badge.badge_template?.image_url || badge.image_url || badge.image || null,
+            issuer: badge.issuer?.entities?.[0]?.entity?.name || badge.badge_template?.issuer?.name || badge.issuer_name || null,
+            issuedAt: badge.issued_at || badge.issued_at_date || null,
+            expiresAt: badge.expires_at || null,
+            verifyUrl: badge.badge_url || (badge.id ? `https://www.credly.com/badges/${badge.id}` : '#'),
+            skills: badge.badge_template?.skills || []
+        }));
+
+        res.json({ success: true, data: badges });
+    } catch (error) {
+        console.error('Credly Error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch Credly badges.' });
     }
 });
 
@@ -139,14 +274,33 @@ app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
     }
 });
 
+// 3b. Analytics Visitor Tracking Read Endpoint
+app.get('/api/metrics/visits', apiLimiter, async (req, res) => {
+    try {
+        const metricsRef = firestore.collection('portfolio_stats').doc('visits');
+        const docSnap = await metricsRef.get();
+        if (docSnap.exists) {
+            res.json({ success: true, visits: docSnap.data().total_visits || 0 });
+        } else {
+            res.json({ success: true, visits: 0 });
+        }
+    } catch (error) {
+        console.error("Failed to fetch visits:", error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch visits' });
+    }
+});
+
 // 4. RAG Chat Endpoint
 app.post('/api/chat', apiLimiter, async (req, res) => {
     try {
-        const { message } = req.body;
+        let { message } = req.body;
         // Input Validation & Length Check
         if (!message || typeof message !== 'string' || message.length > 500) {
             return res.status(400).json({ error: "Message required (max 500 characters)." });
         }
+
+        // Sanitize PII with Cloud DLP before processing
+        message = await sanitizeWithDLP(message);
 
         const contextString = await getRetrievedContext(message);
 
@@ -231,6 +385,43 @@ async function getRetrievedContext(message) {
     } catch (e) {
         console.error("Context Retrieval Failed:", e.message);
         return "";
+    }
+}
+
+// ==========================================
+// DLP SANITIZATION HELPER
+// ==========================================
+async function sanitizeWithDLP(text) {
+    if (!dlpClient) return text; // Graceful fallback if DLP not available
+    try {
+        const infoTypes = [
+            { name: 'EMAIL_ADDRESS' },
+            { name: 'PHONE_NUMBER' },
+            { name: 'PERSON_NAME' },
+            { name: 'CREDIT_CARD_NUMBER' },
+            { name: 'US_SOCIAL_SECURITY_NUMBER' },
+        ];
+        const [response] = await dlpClient.deidentifyContent({
+            parent: `projects/${PROJECT_ID}/locations/global`,
+            item: { value: text },
+            deidentifyConfig: {
+                infoTypeTransformations: {
+                    transformations: [{
+                        infoTypes: infoTypes,
+                        primitiveTransformation: {
+                            replaceConfig: {
+                                newValue: { stringValue: '[REDACTED]' }
+                            }
+                        }
+                    }]
+                }
+            },
+            inspectConfig: { infoTypes: infoTypes }
+        });
+        return response.item?.value || text;
+    } catch (error) {
+        console.warn('DLP sanitization failed, using original text:', error.message);
+        return text; // Graceful fallback
     }
 }
 

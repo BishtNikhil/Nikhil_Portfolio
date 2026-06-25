@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Mail, MapPin, ExternalLink, Download, Code2, Briefcase, Eye, Wifi } from 'lucide-react';
 import { db } from '../firebaseConfig';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { API_BASE_URL } from '../config';
 
 const Hero = () => {
@@ -9,12 +9,15 @@ const Hero = () => {
   const [apiStatus, setApiStatus] = useState('checking');
 
   useEffect(() => {
-    // Listen to real-time updates from Firestore!
-    const unsub = onSnapshot(doc(db, 'portfolio_stats', 'visits'), (docSnap) => {
-      if (docSnap.exists()) {
-        setVisitors(docSnap.data().total_visits);
-      }
-    });
+    // Fetch secure visitor count from API Gateway instead of direct client-side read
+    fetch(`${API_BASE_URL}/api/metrics/visits`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.visits !== undefined) {
+          setVisitors(data.visits);
+        }
+      })
+      .catch(err => console.error("Failed to load visitor count", err));
 
     // Check Cloud Run API Gateway Health
     fetch(`${API_BASE_URL}/api/health`)
@@ -25,7 +28,6 @@ const Hero = () => {
       })
       .catch(() => setApiStatus('offline'));
 
-    return () => unsub();
   }, []);
 
   const statusColor = apiStatus === 'live' ? '#4caf50' : apiStatus === 'offline' ? '#f44336' : '#ffa726';

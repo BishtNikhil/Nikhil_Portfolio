@@ -1,6 +1,6 @@
 {
   "name": "portfolio-api-gateway",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "API Gateway for my Portfolio via Google Cloud Run",
   "main": "server.js",
   "type": "module",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.35.0",
+    "@google-cloud/dlp": "^5.0.0",
     "@google-cloud/bigquery": "^8.1.1",
     "@google-cloud/firestore": "^8.3.0",
     "@google-cloud/storage": "^7.19.0",
