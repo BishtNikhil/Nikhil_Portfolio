@@ -62,3 +62,10 @@ skills-lock.json
 Nikhil_Singh_Bisht_Resume.docx
 Nikhil_Singh_Bisht_Resume.pdf
 nikhil_voice_sample.m4a
+# ═══════════════════════════════════════════
+# Media & Audio (Don't commit large voice samples)
+# ═══════════════════════════════════════════
+*.m4a
+*.mp3
+*.wav
+nikhil_voice_sample.m4a

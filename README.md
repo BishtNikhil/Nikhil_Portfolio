@@ -25,6 +25,31 @@ This application passed a strict security audit during the Climax Release.
 - **Database**: Google Firestore (NoSQL), Google BigQuery (Data Analytics).
 - **Infrastructure**: Firebase Hosting, Google Cloud Build (CI/CD), Docker.
 
+## 📂 Project Structure
+
+```text
+Nikhil_Portfolio/
+├── frontend/                # React.js & Vite Frontend
+│   ├── src/                 # UI Components & App logic
+│   ├── public/              # Static assets (images, PDFs)
+│   ├── dist/                # Production build output
+│   └── package.json         # Frontend dependencies
+│
+├── backend/                 # Node.js & Express API (Cloud Run)
+│   ├── server.js            # Core API Gateway and RAG AI logic
+│   ├── ingest.js            # Vertex AI Vector Search ingestion script
+│   ├── deploy.ps1           # Windows automation script (Secret Manager sync)
+│   ├── deploy.sh            # Bash automation script (Secret Manager sync)
+│   ├── .secrets.env         # Local-only secrets storage (Gitignored)
+│   ├── Dockerfile           # Container configuration
+│   └── package.json         # Backend dependencies
+│
+├── scripts/                 # Infrastructure and maintenance scripts
+├── firebase.json            # Firebase Hosting configuration
+├── firestore.rules          # Firestore database security rules
+└── README.md                # Project documentation
+```
+
 ## ⚙️ Setup & Configuration
 
 ### Prerequisites
@@ -33,9 +58,13 @@ This application passed a strict security audit during the Climax Release.
 - Firebase CLI
 
 ### Environment Variables
-To run the project locally or deploy it, the following environment variables are required in the `api-gateway`:
-- `GEMINI_API_KEY`: Your Google Gen AI API key.
-- `PROJECT_ID`: Your Google Cloud Project ID.
+To run the project locally or deploy it, you must configure your keys in the backend directory. 
+Copy `backend/.env.example` to `backend/.secrets.env` and populate your keys:
+- `GEMINI_API_KEY`: Required for the AI Digital Twin.
+- `GITHUB_TOKEN`: Required for dynamic GitHub stats.
+- `WAKATIME_API_KEY`: Required for live coding activity.
+
+*(Note: `.secrets.env` is strictly gitignored and pushed securely to Google Secret Manager during deployment).*
 
 ### Local Development
 
@@ -48,24 +77,27 @@ To run the project locally or deploy it, the following environment variables are
 2. **Install dependencies**:
    ```bash
    # Front-end
+   cd frontend
    npm install
+   cd ..
 
-   # API Gateway
-   cd api-gateway
+   # Backend API
+   cd backend
    npm install
+   cd ..
    ```
 
 3. **Configure Firebase**:
-   Replace the placeholder in `src/firebaseConfig.js` with your actual project credentials.
+   Replace the placeholder in `frontend/src/firebaseConfig.js` with your actual project credentials.
 
-4. **Run the application**:
+4. **Run the application locally**:
    ```bash
-   # Start the API Gateway
-   cd api-gateway
-   node server.js
+   # Start the Backend API Server
+   cd backend
+   npm start
 
-   # Start the Frontend
-   cd ..
+   # In a separate terminal, start the Frontend
+   cd frontend
    npm run dev
    ```
 
