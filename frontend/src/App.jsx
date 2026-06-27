@@ -11,6 +11,7 @@ import SecurityBadge from './components/SecurityBadge';
 import AITwin from './components/AITwin';
 import Footer from './components/Footer';
 import Admin from './components/Admin';
+import EngineeringLab from './components/EngineeringLab';
 
 const CREDLY_USER_ID = 'nikhil-bisht.76ed7c50';
 
@@ -49,6 +50,10 @@ function App() {
     return <Admin />;
   }
 
+  if (currentHash === '#lab') {
+    return <EngineeringLab />;
+  }
+
   return (
     <>
       <nav className="navbar animate-fade-in">
@@ -60,6 +65,7 @@ function App() {
             <li><a href="#skills">Skills</a></li>
             <li><a href="#journey">Journey</a></li>
             <li><a href="#chat">AI Twin</a></li>
+            <li><a href="#lab" style={{ color: 'var(--primary-color)' }}>Eng. Lab</a></li>
           </ul>
         </div>
       </nav>

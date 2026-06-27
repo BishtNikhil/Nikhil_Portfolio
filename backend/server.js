@@ -290,6 +290,34 @@ app.get('/api/metrics/visits', apiLimiter, async (req, res) => {
     }
 });
 
+// 3c. Case Study (Engineering Lab) Tracking Endpoint
+app.post('/api/metrics/case-study', apiLimiter, async (req, res) => {
+    try {
+        const metricsRef = firestore.collection('portfolio_stats').doc('visits');
+        await metricsRef.set({
+            case_study_visits: FieldValue.increment(1)
+        }, { merge: true });
+        res.json({ success: true, message: 'Case study visit logged' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Metrics logging failed' });
+    }
+});
+
+// 3d. Case Study Tracking Read Endpoint (For Admin Panel)
+app.get('/api/metrics/case-study', apiLimiter, async (req, res) => {
+    try {
+        const metricsRef = firestore.collection('portfolio_stats').doc('visits');
+        const docSnap = await metricsRef.get();
+        if (docSnap.exists) {
+            res.json({ success: true, visits: docSnap.data().case_study_visits || 0 });
+        } else {
+            res.json({ success: true, visits: 0 });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Failed to fetch visits' });
+    }
+});
+
 // 4. RAG Chat Endpoint
 app.post('/api/chat', apiLimiter, async (req, res) => {
     try {
