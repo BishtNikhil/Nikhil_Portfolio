@@ -155,7 +155,7 @@ app.get('/api/stats/github/:username/activity', apiLimiter, async (req, res) => 
             .forEach(e => {
                 const date = new Date(e.created_at).toISOString().split('T')[0];
                 if (commitMap[date] !== undefined) {
-                    commitMap[date] += (e.payload.commits?.length || 0);
+                    commitMap[date] += (e.payload.commits?.length || e.payload.size || 1);
                 }
             });
 

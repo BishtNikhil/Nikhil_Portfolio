@@ -1,10 +1,26 @@
+# ═══════════════════════════════════════════
 # Secrets & Environment Variables
+# ═══════════════════════════════════════════
 .env
 .env.local
 .env.*
+.secrets.env
+*.secrets*
+backend/.secrets.env
 
+# ═══════════════════════════════════════════
+# Dependencies & Build Output
+# ═══════════════════════════════════════════
+node_modules/
+frontend/dist/
+dist/
+dist-ssr/
+*.local
+
+# ═══════════════════════════════════════════
 # Logs
-logs
+# ═══════════════════════════════════════════
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -12,33 +28,37 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# ═══════════════════════════════════════════
+# Editor & OS Files
+# ═══════════════════════════════════════════
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
+# ═══════════════════════════════════════════
 # Firebase
+# ═══════════════════════════════════════════
 .firebase/
 .firebaserc
 firebase-debug.log*
 firestore-debug.log*
 
+# ═══════════════════════════════════════════
 # AI Agent
+# ═══════════════════════════════════════════
 .agents/
 skills-lock.json
 
-# Resume / Private Docs
+# ═══════════════════════════════════════════
+# Private Documents (kept locally only)
+# ═══════════════════════════════════════════
 Nikhil_Singh_Bisht_Resume.docx
 Nikhil_Singh_Bisht_Resume.pdf
 nikhil_voice_sample.m4a

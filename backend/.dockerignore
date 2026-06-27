@@ -1,6 +1,10 @@
 node_modules/
 .git/
 .env
+.env.*
+.secrets.env
 npm-debug.log
 Dockerfile
 .dockerignore
+deploy.sh
+deploy.ps1
