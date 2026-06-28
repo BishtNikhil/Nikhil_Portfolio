@@ -260,6 +260,14 @@ app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
             last_visit: timestamp
         }, { merge: true });
 
+        if (req.query.project) {
+            const projectName = String(req.query.project);
+            const projectClicksRef = firestore.collection('portfolio_stats').doc('project_clicks');
+            await projectClicksRef.set({
+                [projectName]: FieldValue.increment(1)
+            }, { merge: true });
+        }
+
         const row = {
             timestamp: bigquery.timestamp(timestamp),
             userAgent: userAgent,
@@ -271,6 +279,22 @@ app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
     } catch (error) {
         console.error("Metrics Logging Failed:", error.message);
         res.status(500).json({ success: false, error: 'Metrics logging failed' });
+    }
+});
+
+// 3c. Analytics Project Clicks Read Endpoint
+app.get('/api/metrics/projects', apiLimiter, async (req, res) => {
+    try {
+        const projectClicksRef = firestore.collection('portfolio_stats').doc('project_clicks');
+        const docSnap = await projectClicksRef.get();
+        if (docSnap.exists) {
+            res.json({ success: true, data: docSnap.data() });
+        } else {
+            res.json({ success: true, data: {} });
+        }
+    } catch (error) {
+        console.error("Project Clicks Fetch Failed:", error.message);
+        res.status(500).json({ success: false, error: 'Project clicks fetch failed' });
     }
 });
 

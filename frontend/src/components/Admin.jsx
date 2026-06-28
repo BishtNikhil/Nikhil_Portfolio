@@ -1,15 +1,23 @@
-import { ArrowLeft, BarChart3, Activity } from 'lucide-react';
+import { ArrowLeft, BarChart3, Activity, FolderGit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
 const Admin = () => {
   const [caseStudyVisits, setCaseStudyVisits] = useState(0);
+  const [projectClicks, setProjectClicks] = useState({});
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/metrics/case-study`)
       .then(res => res.json())
       .then(result => {
         if (result.success) setCaseStudyVisits(result.visits);
+      })
+      .catch(console.error);
+
+    fetch(`${API_BASE_URL}/api/metrics/projects`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.success && result.data) setProjectClicks(result.data);
       })
       .catch(console.error);
   }, []);
@@ -39,7 +47,7 @@ const Admin = () => {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-color)', marginBottom: '0.5rem' }}>
                   <Activity size={18} /> <b>Engineering Lab Views</b>
@@ -49,6 +57,21 @@ const Admin = () => {
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.5rem' }}>Total Recruiter Clicks on Case Study</div>
              </div>
+             
+             {Object.entries(projectClicks)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([name, clicks]) => (
+                  <div key={name} style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-color)', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <FolderGit2 size={18} /> <b title={name}>{name}</b>
+                    </div>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-light)' }}>
+                      {clicks}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.5rem' }}>Total Project Clicks</div>
+                 </div>
+             ))}
           </div>
 
           <div style={{ background: '#ffffff', borderRadius: '8px', overflow: 'hidden', width: '100%', display: 'flex', justifyContent: 'center', padding: '1rem' }}>
