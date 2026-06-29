@@ -269,7 +269,7 @@ app.post('/api/metrics/visit', apiLimiter, async (req, res) => {
         }
 
         const row = {
-            timestamp: bigquery.timestamp(timestamp),
+            timestamp: timestamp,
             userAgent: userAgent,
             ipPrefix: (ip.toString().split('.')[0] || '0') + '.*.*.*'
         };
