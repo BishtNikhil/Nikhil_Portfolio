@@ -1,0 +1,52 @@
+name: Deploy to GCP & Firebase
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Google Cloud Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Deploy Frontend to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_CREDENTIALS }}
+          channelId: live
+          projectId: react-app-492207
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          cd backend
+          # Deploying using --source. Cloud Run will automatically retain all secrets 
+          # from the previous revision (GEMINI_API_KEY, GITHUB_TOKEN, etc).
+          gcloud run deploy portfolio-api-gateway \
+            --source . \
+            --region us-central1 \
+            --project react-app-492207 \
+            --allow-unauthenticated \
+            --quiet
