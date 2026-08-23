@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
-# deploy.sh — One-command Cloud Run deploy with Secret Manager
+# deploy.sh — Direct Cloud Run deploy with local environment variables
 # ═══════════════════════════════════════════════════════════════
 # Usage:  bash deploy.sh
-# Reads .secrets.env, creates/updates Google Secret Manager
-# secrets, then deploys the latest code to Cloud Run.
+# Reads .secrets.env and injects variables directly into Cloud Run
+# with ZERO Secret Manager charges (100% Free Tier).
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -26,20 +26,12 @@ if [ ! -f "$SECRETS_FILE" ]; then
 fi
 
 echo "═══════════════════════════════════════════════════════"
-echo "  Deploying $SERVICE_NAME to Cloud Run"
+echo "  Deploying $SERVICE_NAME to Cloud Run (Direct Env Vars)"
 echo "  Project: $PROJECT_ID | Region: $REGION"
 echo "═══════════════════════════════════════════════════════"
 
-# ── Step 1: Enable Secret Manager API (idempotent) ──
-echo ""
-echo "Step 1/3: Ensuring Secret Manager API is enabled..."
-gcloud services enable secretmanager.googleapis.com --project="$PROJECT_ID" 2>/dev/null || true
-
-# ── Step 2: Push secrets to Secret Manager ──
-echo ""
-echo "Step 2/3: Syncing secrets to Google Secret Manager..."
-
-SECRET_BINDINGS=""
+# ── Parse .secrets.env ──
+ENV_VARS=""
 
 while IFS='=' read -r key value; do
     # Skip comments and empty lines
@@ -50,32 +42,16 @@ while IFS='=' read -r key value; do
     # Skip empty values
     [ -z "$value" ] && continue
 
-    SECRET_NAME="portfolio-${key,,}"  # lowercase the key for secret name
-    SECRET_NAME="${SECRET_NAME//_/-}" # replace underscores with hyphens
-
-    # Create or update the secret
-    if gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" &>/dev/null; then
-        echo "  Updating: $SECRET_NAME"
-        echo -n "$value" | gcloud secrets versions add "$SECRET_NAME" \
-            --project="$PROJECT_ID" --data-file=- --quiet
+    if [ -n "$ENV_VARS" ]; then
+        ENV_VARS="${ENV_VARS},${key}=${value}"
     else
-        echo "  Creating: $SECRET_NAME"
-        echo -n "$value" | gcloud secrets create "$SECRET_NAME" \
-            --project="$PROJECT_ID" --data-file=- \
-            --replication-policy="automatic" --quiet
-    fi
-
-    # Build the --update-secrets flag binding
-    if [ -n "$SECRET_BINDINGS" ]; then
-        SECRET_BINDINGS="${SECRET_BINDINGS},${key}=${SECRET_NAME}:latest"
-    else
-        SECRET_BINDINGS="${key}=${SECRET_NAME}:latest"
+        ENV_VARS="${key}=${value}"
     fi
 done < "$SECRETS_FILE"
 
-# ── Step 3: Deploy to Cloud Run ──
+# ── Deploy to Cloud Run ──
 echo ""
-echo "Step 3/3: Deploying latest code to Cloud Run..."
+echo "Deploying latest code to Cloud Run..."
 
 DEPLOY_CMD="gcloud run deploy $SERVICE_NAME \
     --source . \
@@ -83,10 +59,12 @@ DEPLOY_CMD="gcloud run deploy $SERVICE_NAME \
     --project $PROJECT_ID \
     --allow-unauthenticated \
     --memory 512Mi \
-    --timeout 60"
+    --min-instances 0 \
+    --timeout 60 \
+    --clear-secrets"
 
-if [ -n "$SECRET_BINDINGS" ]; then
-    DEPLOY_CMD="$DEPLOY_CMD --update-secrets=$SECRET_BINDINGS"
+if [ -n "$ENV_VARS" ]; then
+    DEPLOY_CMD="$DEPLOY_CMD --set-env-vars=$ENV_VARS"
 fi
 
 eval "$DEPLOY_CMD"
@@ -96,3 +74,4 @@ echo "════════════════════════�
 echo "  ✓ Deploy complete!"
 echo "  Service URL: https://$SERVICE_NAME-502261012207.$REGION.run.app"
 echo "═══════════════════════════════════════════════════════"
+

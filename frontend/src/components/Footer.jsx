@@ -1,4 +1,4 @@
-import { Box, Layers } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 const Footer = () => {
   return (

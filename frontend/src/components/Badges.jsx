@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import PropTypes from 'prop-types';
 import { Award, ShieldCheck, Code, BadgeCheck, ExternalLink, FileText } from 'lucide-react';
 
 // Static fallback certifications (progressive enhancement)
@@ -217,6 +218,12 @@ const Badges = ({ badges: credlyBadges = [], loading = true, credlyFailed = fals
       </div>
     </section>
   );
+};
+
+Badges.propTypes = {
+  badges: PropTypes.array,
+  loading: PropTypes.bool,
+  credlyFailed: PropTypes.bool,
 };
 
 export default Badges;

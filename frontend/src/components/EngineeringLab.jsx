@@ -3,7 +3,6 @@ import { API_BASE_URL } from '../config';
 import { ArrowLeft, Activity, Server, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const EngineeringLab = () => {
-  const [caseStudyVisits, setCaseStudyVisits] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const carouselData = [

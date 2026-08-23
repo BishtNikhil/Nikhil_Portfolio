@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Radar, Award } from 'lucide-react';
 
 const calculateSkills = (badges) => {
@@ -261,6 +262,11 @@ const SkillRadar = ({ badges = [], loading = true }) => {
       </div>
     </section>
   );
+};
+
+SkillRadar.propTypes = {
+  badges: PropTypes.array,
+  loading: PropTypes.bool,
 };
 
 export default SkillRadar;

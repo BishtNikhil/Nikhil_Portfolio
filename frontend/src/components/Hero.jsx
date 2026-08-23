@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Mail, MapPin, ExternalLink, Download, Code2, Briefcase, Eye, Wifi } from 'lucide-react';
-import { db } from '../firebaseConfig';
-import { doc } from 'firebase/firestore';
 import { API_BASE_URL } from '../config';
 
 const Hero = () => {
